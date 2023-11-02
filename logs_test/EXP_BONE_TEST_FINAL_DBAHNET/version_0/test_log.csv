@@ -1,0 +1,2 @@
+Mean Test Dice,DiceCortical,DiceTrabecular,Hausdorff Distance 95% Cortical,Hausdorff Distance 95% Trabecular,Hausdorff Distance 95% Mean
+"metatensor(0.9841, device='cuda:0')","metatensor(0.9913, device='cuda:0')","metatensor(0.9769, device='cuda:0')","tensor(0.0081, device='cuda:0')","tensor(0.0111, device='cuda:0')","tensor(0.0096, device='cuda:0')"
