@@ -4,7 +4,7 @@ import os
 import torch
 import argparse
 from monai.networks.nets import UNet, AttentionUnet, UNETR, SwinUNETR
-#from models.DBAHNet import DBAHNet
+from pytorch_lightning.loggers import TensorBoardLogger
 import os
 
 
@@ -33,12 +33,17 @@ if __name__ == "__main__":
          from trainer_bone_dbahnet import DBAHNET
          model = DBAHNET().load_from_checkpoint(args.ckpt).eval()
     test_dataloader = get_test_dataloader()
-    trainer = pl.Trainer(accelerator= "gpu", precision=16)
+    tensorboardlogger = TensorBoardLogger(
+        'logs_test',
+        name = f"EXP_BONE_TEST_FINAL_{args.model}",
+        default_hp_metric = None
+    )
+    trainer = pl.Trainer(accelerator= "gpu", precision=16, logger = tensorboardlogger)
 
-    #print("Validation set")
-    #trainer.test(model, dataloaders = val_dataloader)
     print("Testing set")
     print("Model : ", args.model)
     trainer.test(model, dataloaders = test_dataloader)
+
+
 
 
