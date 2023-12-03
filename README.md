@@ -5,6 +5,10 @@ DBAHNET: DUAL-BRANCH ATTENTION-BASED HYBRID NETWORK FOR HIGH-RESOLUTION 3D MICRO
 torch : 1.13.1+cu117
 monai : 1.2.0
 pytorch lightning : 2.0.7
+SimpleITK
+numpy
+json
+pyvista (for visualisation)
 
 # Train DBAHNet on µCT 3D Tibia Data
 python lightning_train_bone.py --model  name_model --exp name_of_experience 
