@@ -57,22 +57,3 @@ class Encoder(nn.Module):
         xout, _, _, _ = self.mrha_enc3(x2, D2, H2, W2)
         skips = [x, x1, x2]
         return xout, skips
-    
-if __name__ == "__main__":
-
-
-    dim = 96
-    in_dim = (16, 32, 32)
-    depth = 2
-    num_heads = [6,12,24]
-    window_size = 7
-    batch_size = 1
-    D, H, W = in_dim
-    x = torch.rand((batch_size, H * W * D, dim))
-    print("Input shape :",x.shape)
-    x_view = x.view(-1, D, H, W, dim).permute(0, 4, 1, 2, 3).contiguous()
-    print("MRHA Encoder")
-    MRHA_Encoder = Encoder(dim = dim, in_dim= in_dim, depth = depth, num_heads = num_heads, window_size = window_size)
-    xout, skips = MRHA_Encoder(x, D, H, W)
-    skip1, skip2, skip3 = skips
-    print("Skips :", skip1.shape, skip2.shape, skip3.shape)

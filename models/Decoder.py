@@ -145,29 +145,3 @@ class Decoder(nn.Module):
         x3_view = x3.view(-1, D3, H3, W3, self.dim//8).permute(0, 4, 1, 2, 3).contiguous()
         out = self.up_final(x3_view)
         return out
-
-if __name__ == "__main__":
-
-    print("MRHA Decoder ")
-    in_dim = (4, 8, 8)
-    depth = 2
-    num_heads = [6,12,24]
-    window_size = 7
-    batch_size = 1
-    num_classes = 3
-    C = 96*8
-    dim = C
-    D, H, W = in_dim
-    x = torch.rand((batch_size, H * W  * D , C))
-    skip3 = torch.rand((batch_size, 2*H * 2*W * 2*D, dim//2))
-    skip2 = torch.rand((batch_size, 4*H * 4*W * 4*D, dim//4))
-    skip1 = torch.rand((batch_size, 8*H * 8*W * 8*D, dim//8))
-    skips = [skip1, skip2, skip3]
-    mrha_decoder = Decoder(dim, in_dim,num_classes , depth, num_heads, window_size, upsample= Upsample)
-    print("input shape :", x.shape)
-    print("skip 3 shape :", skip3.shape)
-    print("skip 2 shape :", skip2.shape)
-    print("skip 1 shape :", skip1.shape)
-    out_decoder = mrha_decoder(x, skips)
-    print("Output shape:", out_decoder.shape)
-

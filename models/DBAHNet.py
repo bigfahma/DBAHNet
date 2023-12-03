@@ -31,18 +31,3 @@ class DBAHNet(nn.Module):
         x = self.mrha_decoder(x, skips)
         x = x.permute(0, 1, 4, 3, 2)
         return x
-
-if __name__ == "__main__":
-    x = torch.randn(2, 1,320, 320, 32) 
-    emb_dim = 96
-    in_dim = x.shape[2:]
-    num_classes = 3
-    num_heads = [6,12,24,48]
-    dbahnet = DBAHNet(emb_dim= emb_dim, in_dim=in_dim, num_classes= num_classes,
-                      depth = 2, num_heads=num_heads, window_size=7)
-    print("Input shape", x.shape)
-    start_time = time.time()
-    output = dbahnet(x)
-    end_time = time.time()
-    print("Time forward :", end_time - start_time)
-    print("Output :",output.shape)

@@ -1,15 +1,9 @@
 import torch
 from torch import nn
-
-from einops import rearrange, repeat
-from einops.layers.torch import Rearrange
-
-# helpers
+from einops import rearrange
 
 def pair(t):
     return t if isinstance(t, tuple) else (t, t)
-
-# classes
 
 class FeedForward(nn.Module):
     def __init__(self, dim, mlp_ratio, dropout = 0.):
@@ -81,24 +75,3 @@ class Bottleneck(nn.Module):
             x = ff(x) + x
         return self.norm(x)
     
-
-if __name__ == "__main__":
-    depth = 4  # Number of layers in the transformer
-    num_heads = 48  # Number of attention heads
-    mlp_ratio = 0.4  # Dimension of the hidden layer in the feed-forward network
-    dropout = 0.1  # Dropout rate
-
-    in_dim = (2, 4, 4)
-    B = 1
-    C = 96*3
-    D, H, W = in_dim
-    
-    model = Bottleneck(C, depth, num_heads, mlp_ratio, dropout)
-
-    x = torch.rand((B,  D * H * W, C))
-    print(x.shape)
-    # Forward pass through the model
-    output = model(x)
-
-    # Print the shape of the output tensor
-    print(output.shape)  # Should print torch.Size([16, 50, 512])

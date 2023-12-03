@@ -19,17 +19,13 @@ class project(nn.Module):
     def forward(self,x):
         x=self.conv1(x)
         x=self.activate(x)
-        #norm1
         Wd, Wh, Ww = x.size(2), x.size(3), x.size(4)
         x = x.flatten(2).transpose(1, 2).contiguous()
         x = self.norm1(x)
         x = x.transpose(1, 2).contiguous().view(-1, self.out_dim, Wd, Wh, Ww)
-        
-
         x=self.conv2(x)
         if not self.last:
             x=self.activate(x)
-            #norm2
             Wd, Wh, Ww = x.size(2), x.size(3), x.size(4)
             x = x.flatten(2).transpose(1, 2).contiguous()
             x = self.norm2(x)
@@ -54,8 +50,6 @@ class PatchEmbed(nn.Module):
             self.norm = None
 
     def forward(self, x):
-        """Forward function."""
-        # padding
         _, _, D, H, W = x.size()
         if D % self.patch_size[0] != 0:
             x = F.pad(x, (0, self.patch_size[0] - D % self.patch_size[0]))
@@ -65,17 +59,8 @@ class PatchEmbed(nn.Module):
             x = F.pad(x, (0, 0, 0, 0, 0, self.patch_size[2] - W % self.patch_size[2]))
         x = self.proj1(x) 
         x = self.proj2(x) 
-        #print("Embedding : ",x.shape)
         if self.norm is not None:
             x = x.flatten(2).transpose(1, 2).contiguous()
             x = self.norm(x)
 
         return x
-
-if __name__ == '__main__':
-    H = 128; W = 128; D = 32
-    x = torch.randn(2, 1, D, H, W)  
-    print("Input shape :", x.shape)
-    patch_embed_layer = PatchEmbed(patch_size=4, in_chans=1, embed_dim=96, norm_layer=nn.LayerNorm)
-    y = patch_embed_layer(x)
-    print("Output shape:", y.shape)

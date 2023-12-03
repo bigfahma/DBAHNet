@@ -4,7 +4,6 @@ import torch.nn as nn
 class SACBlock(nn.Module):
     def __init__(self, in_channels, norm_layer = nn.BatchNorm3d):
         super(SACBlock, self).__init__()
-        
         self.conv3d = nn.Conv3d(in_channels=2, out_channels=1, kernel_size=1)
         self.sigmoid = nn.Sigmoid()
         self.conv3d2 = nn.Conv3d(in_channels= in_channels, out_channels= in_channels , kernel_size=3, padding="same")
@@ -19,13 +18,3 @@ class SACBlock(nn.Module):
         output = self.gelu(self.conv3d2(attention_map * x))     
         output = self.norm_layer(output)   
         return output
-
-# Instantiate and test the module
-if __name__ == "__main__":
-    C = 32
-    H = 128; W = 128; D = 16
-    x = torch.rand((1, C, D, H, W))
-    print("INPUT SHAPE :", x.shape)
-    module = SACBlock(in_channels=C)
-    output = module(x)
-    print("OUTPUT SHAPE : ",output.shape)

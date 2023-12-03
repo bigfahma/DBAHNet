@@ -22,13 +22,3 @@ class CACBlock(nn.Module):
         output = self.gelu(self.fc3(x * attention_map))
         output = self.norm_layer2(output)
         return output
-
-
-if __name__ == "__main__":
-    C = 32
-    H = 128; W = 128; D = 16
-    x = torch.rand((1, C, D, H, W))
-    print("input shape :", x.shape)
-    cac_block = CACBlock(in_channels=C)
-    output = cac_block(x)    
-    print(output.shape) 
