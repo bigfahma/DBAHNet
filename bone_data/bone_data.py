@@ -63,14 +63,6 @@ class RemapLabels(MapTransform):
         return d
 
 class ConvertToMultiChannelForBoneClassesd(MapTransform):
-    """
-    Convert labels to multi channels based on bone classes:
-    label 0 is background
-    label 85 is cortical (class 1)
-    label 171 is trabecular (class 2)
-
-    The possible classes are BG (Background), Cortical, and Trabecular.
-    """
 
     def __call__(self, data):
         d = dict(data)
@@ -86,17 +78,10 @@ class ConvertToMultiChannelForBoneClassesd(MapTransform):
             # Stack the results
             multi_channel_label = np.stack(result, axis=0).astype(np.float32)
             ### verification ####
-            # print(np.unique(multi_channel_label[0]))
-            # print(np.unique(multi_channel_label[1]))
-            # print(np.unique(multi_channel_label[2]))
 
-            # print(np.array(multi_channel_label[2]).shape)
             # pv.plot(np.array(multi_channel_label[0]))
             # pv.plot(np.array(multi_channel_label[1]))
             # pv.plot(np.array(multi_channel_label[2]))
-
-           
-            
             d[key] = multi_channel_label
             
         return d
@@ -191,27 +176,3 @@ def get_test_dataloader():
 
     return test_loader
 
-if __name__ == "__main__":
-    # Get the train data loader
-    train_loader = get_train_dataloader()
-
-    # # Using the data loader to get a sample batch
-    for batch_idx, batch_data in enumerate(train_loader):
-         # Break after the first batch for demonstration purposes
-         images, labels = batch_data['image'], batch_data['label']
-         print(labels.shape)
-         print(np.unique(labels[0]))
-         print(len(np.unique(labels[0])))
-    #     plt.imshow(images[0][0][:][:][128])
-    #     plt.show()
-         #channel = 2
-         #slice_z = labels[0][channel][:,:,128]
-         # print("slice shape: ", np.shape(slice_z))
-         #print(np.unique(s))
-    #     # print(f"Batch {batch_idx + 1} Info:")
-    #     # print(f"Images shape: {images.shape}")
-    #     # print(f"Labels shape: {labels.shape}")
-    #     # print(f"Unique labels in this batch: {torch.unique(labels)}")
-    #     # print("-" * 50)
-        
-    #     # Breaking after first batch for demonstration purposes
