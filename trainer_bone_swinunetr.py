@@ -97,19 +97,12 @@ class BONESWINUNETR(pl.LightningModule):
                 inputs, roi_size, sw_batch_size, self.model, overlap = 0.5)
         loss = self.custom_loss(outputs, labels)
         self.validation_step_outputs.append(loss)
-        val_outputs = self.post_trans_images(outputs)
-        #print("UNIQUE VAL", np.unique(val_outputs.cpu().numpy()))
-        #print("VAL OUTPUT :", val_outputs.cpu().numpy().shape)
-        #print("VAL OUTPUT:", val_outputs[:,0:1].cpu().numpy().shape)
-        #print("LABEL OUTPUT:", labels[:,0:1].cpu().numpy().shape)
-        
+        val_outputs = self.post_trans_images(outputs)    
         metric_cor = DiceScore(y_pred=val_outputs[:, 0:1], y=labels[:, 0:1], include_background= False)
-        metric_trab = DiceScore(y_pred=val_outputs[:, 1:2], y=labels[:, 1:2], include_background = False) # Change maybe include background
+        metric_trab = DiceScore(y_pred=val_outputs[:, 1:2], y=labels[:, 1:2], include_background = False)
         mean_val_dice =  (metric_trab + metric_cor)/2
-        #print("val_mean_dice:",mean_val_dice.cpu().numpy().shape)
         self.val_mean_dice.append(mean_val_dice)
         self.val_dice_cortical.append(metric_cor)
-        #print("val_mean_dice_list",torch.stack(self.val_mean_dice).cpu().numpy().shape)
         self.val_dice_trabecular.append(metric_trab)
         
         return loss
@@ -123,10 +116,10 @@ class BONESWINUNETR(pl.LightningModule):
         self.log('val/DiceCortical', metric_cor, sync_dist= True)
         self.log('val/DiceTrabecular', metric_trab, sync_dist= True)
         os.makedirs(self.logger.log_dir,  exist_ok=True)
-        self.validation_step_outputs.clear()  # free memory
-        self.val_mean_dice.clear()  # free memory
-        self.val_dice_cortical.clear()  # free memory
-        self.val_dice_trabecular.clear()  # free memory
+        self.validation_step_outputs.clear()  
+        self.val_mean_dice.clear()  
+        self.val_dice_cortical.clear()
+        self.val_dice_trabecular.clear() 
 
         if self.current_epoch == 0:
             with open('{}/metric_log.csv'.format(self.logger.log_dir), 'w') as f:
