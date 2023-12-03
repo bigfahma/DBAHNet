@@ -12,6 +12,8 @@ json
 pyvista (for visualisation)
 csv
 
+All training and experiments were conducted with 4 NVIDIA V100 32GB GPUs.
+
 # Train DBAHNet on µCT 3D Tibia Data
 python lightning_train_bone.py --model  name_model --exp name_of_experience 
 
