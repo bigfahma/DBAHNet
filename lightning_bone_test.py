@@ -1,11 +1,7 @@
-from bone_data.bone_data import get_train_dataloader, get_val_dataloader, get_test_dataloader
+from bone_data.bone_data import get_test_dataloader
 import pytorch_lightning as pl
-import os 
-import torch
 import argparse
-from monai.networks.nets import UNet, AttentionUnet, UNETR, SwinUNETR
 from pytorch_lightning.loggers import TensorBoardLogger
-import os
 
 
 if __name__ == "__main__":
@@ -16,7 +12,7 @@ if __name__ == "__main__":
 
     parser.add_argument('--ckpt', type=str, required=True, default = "ckpt/EXP_BONE_DBAHNet/last.ckpt", help = "Insert path to ckpt of the chosen model")
     args = parser.parse_args()
-    #model = BONEUNET.load_from_checkpoint(args.ckpt).eval()
+
     if args.model == "UNET":
          from trainer_bone_unet import BONEUNET
          model = BONEUNET().load_from_checkpoint(args.ckpt).eval()
@@ -32,6 +28,7 @@ if __name__ == "__main__":
     if args.model == "DBAHNET":
          from trainer_bone_dbahnet import DBAHNET
          model = DBAHNET().load_from_checkpoint(args.ckpt).eval()
+         
     test_dataloader = get_test_dataloader()
     tensorboardlogger = TensorBoardLogger(
         'logs_test',
