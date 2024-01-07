@@ -1,19 +1,13 @@
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
 import pytorch_lightning as pl
-#from models.DBAHNet import DBAHNet
 from trainer_bone_dbahnet import DBAHNET
-import os
 from pytorch_lightning.loggers import TensorBoardLogger
 import argparse
 import torch
-from monai.networks.nets import UNet, AttentionUnet, UNETR, SwinUNETR
-#os.environ["TORCH_CPP_LOG_LEVEL"]="INFO"
-#os.environ["TORCH_DISTRIBUTED_DEBUG"] = "DETAIL"
 
 
-
-#os.environ["CUDA_VISIBLE_DEVICES"] = "3,4,5,6"
 if __name__ =="__main__":
+    
     print("Number of GPUs available : ",torch.cuda.device_count())
     for i in range(torch.cuda.device_count()):
         print(torch.cuda.get_device_properties(i).name)
@@ -21,7 +15,6 @@ if __name__ =="__main__":
     parser.add_argument('--exp', type=str, required=True)
     parser.add_argument('--model', type=str, choices=list(["UNET","ATTENTIONUNET","UNETR","SWINUNETR", "DBAHNET"]),default="DBAHNet", help="Choose a model from the list: [UNET, ATTENTIONUNET, UNETR, SWINUNETR,DBAHNET]") 
     args = parser.parse_args()
-    #model = BONEUNET.load_from_checkpoint(args.ckpt).eval()
     if args.model == "UNET":
          from trainer_bone_unet import BONEUNET
          model = BONEUNET()
@@ -37,7 +30,10 @@ if __name__ =="__main__":
     if args.model == "DBAHNET":
          from trainer_bone_dbahnet import DBAHNET
          model = DBAHNET()
+
+
     print("Training ...")
+    
     checkpoint_callback = ModelCheckpoint(
         monitor='val/MeanDiceScore',
         dirpath='./ckpt/{}'.format(args.exp),
@@ -66,11 +62,8 @@ if __name__ =="__main__":
                         max_epochs = 100,
                         callbacks=[checkpoint_callback, early_stop_callback, ], 
                         num_sanity_val_steps=4,
-                        #strategy = "ddp",
                         logger = tensorboardlogger,
                         log_every_n_steps= 10,
-                        accumulate_grad_batches= 4, # 8 * batch_size  = 16
-                        #val_check_interval = 0.5,
+                        accumulate_grad_batches= 4,
                         )
-    # trainer.tune(model)
-    trainer.fit(model) # ,ckpt_path = "ckpt/EXP_BONE_DBAHNET_3_48_444_v3/Epoch 49-MeanDiceScore0.9841.ckpt")
+    trainer.fit(model) 
