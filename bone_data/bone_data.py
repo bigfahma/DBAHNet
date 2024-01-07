@@ -9,17 +9,7 @@ from monai.transforms import (
     ToTensord,
     AddChanneld,
     MapTransform,
-    Affined,
-    Rand3DElasticd,
     RandAdjustContrastd,
-    # RandShiftIntensityd,
-    # Orientationd,
-    # ScaleIntensityRanged,
-    # SpatialPadd,
-    # CropForegroundd,
-    # RandSpatialCropSamplesd,
-    
-
 )   
 from monai.data import DataLoader, Dataset
 import json
@@ -27,12 +17,15 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pyvista as pv
 
+def load_data(file_path):
+    with open(file_path) as file:
+        data = json.load(file)
+        return data['train'], data['val'], data['test']
+
 
 set_determinism(seed=1)
-with open('bone_data/data_bone_08_15_split.json') as f:
-    data = json.load(f)
-train_files, val_files, test_files = data['train'], data['val'], data['test']
 
+train_files, val_files, test_files = load_data('bone_data/data_bone_08_15_split.json')
 
 class PrintShape:
     def __call__(self, data):
@@ -69,19 +62,9 @@ class ConvertToMultiChannelForBoneClassesd(MapTransform):
         for key in self.keys:
             result = []
             result.append(d[key] == 0)
-            
-            # Cortical class
             result.append(d[key] == 1)
-            
-            # Trabecular class
             result.append(d[key] == 2)
-            # Stack the results
             multi_channel_label = np.stack(result, axis=0).astype(np.float32)
-            ### verification ####
-
-            # pv.plot(np.array(multi_channel_label[0]))
-            # pv.plot(np.array(multi_channel_label[1]))
-            # pv.plot(np.array(multi_channel_label[2]))
             d[key] = multi_channel_label
             
         return d
@@ -91,10 +74,8 @@ def get_train_dataloader():
     train_transform = Compose(
         [
             LoadImaged(keys=["image", "label"]),
-            #PrintShape(),
             ConvertToMultiChannelForBoneClassesd(keys = ['label']),
             AddChanneld(keys = ["image"]),
-            #PrintShape(),
             RandCropByPosNegLabeld(
                 keys=["image", "label"],
                 label_key="label",
@@ -107,11 +88,6 @@ def get_train_dataloader():
              RandFlipd(keys = ["image", "label"],
                       prob = 0.5,
                       spatial_axis = 1),
-             #Affined( keys = ["image","label"],
-             #       rotate_params = np.pi/4, 
-             #       #shear_params= (0.2, 0.1),
-             #       translate_params= (50,50),
-             #       ),
             RandAdjustContrastd(
                 keys = ["image"],
                 gamma = (0.5, 4.5),
@@ -135,14 +111,11 @@ def get_val_dataloader():
             LoadImaged(keys=["image", "label"]),
             ConvertToMultiChannelForBoneClassesd(keys = ['label']),
             AddChanneld(keys = ["image"]),
-            #DataViewImage(),
             RandCropByPosNegLabeld(
                 keys=["image", "label"],
                 label_key="label",
                 spatial_size=(320,320,32),
                 pos = 1,neg=0),
-            #DataViewImage(),
-            #DataViewLabel(),
             NormalizeIntensityd(keys = "image",
                                nonzero = True,
                                channel_wise = True),
