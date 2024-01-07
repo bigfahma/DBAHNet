@@ -1,28 +1,17 @@
-# Torch Library
 import torch
-import torch.nn.functional as F
-import torch.nn as nn 
-# MONAI
 from monai.networks.nets import swin_unetr
-from monai.metrics import DiceMetric#, compute_meandice
 from monai.metrics.hausdorff_distance import compute_hausdorff_distance
 from monai.losses import DiceLoss,DiceFocalLoss,FocalLoss, DiceCELoss
 from monai.inferers import sliding_window_inference
 from monai.transforms import AsDiscrete, Activations, Compose, EnsureType
 from loss.diceloss import DiceScore
-import numpy as np 
-# Pytorch Lightning
 import pytorch_lightning as pl
-
-# Custom Libraries
 from bone_data.bone_data import get_train_dataloader, get_val_dataloader, get_test_dataloader
-
-import matplotlib.pyplot as plt
-
 import csv
 import os
 
 class BONESWINUNETR(pl.LightningModule):
+    
     def __init__(self, lr=1e-4):
         super().__init__()
         self.lr = lr
@@ -34,34 +23,25 @@ class BONESWINUNETR(pl.LightningModule):
             "Dice Loss": DiceLoss(to_onehot_y=False, sigmoid=False, squared_pred=True),
             "Dice Focal Loss": DiceFocalLoss(to_onehot_y=False, sigmoid = False, squared_pred=True),
             "Focal Loss": FocalLoss(to_onehot_y=False),
-            "Dice CE Loss": DiceCELoss(to_onehot_y=False, sigmoid=False, squared_pred=True) # Sigmoid was true
+            "Dice CE Loss": DiceCELoss(to_onehot_y=False, sigmoid=False, squared_pred=True)
         }
         
         self.model = swin_unetr.SwinUNETR(img_size = self.IMAGE_DIM,
                                in_channels= 1,
                                out_channels= 3,
                                depths = (2,2,2,2),
-                               #num_heads = (3,6,12,24),
                                feature_size=12,
                                drop_rate= 0,
                                attn_drop_rate = 0,
-                               #use_checkpoint= True
-                                         ) # attention dropoutrate
+                                         ) 
+
         store_dict = self.model.state_dict()
-        #pretrained_path = "swin_unetr.tiny_5000ep_f12_lr2e-4_pretrained.pt"
-        #model_dict = torch.load(pretrained_path)["state_dict"]
-        #for key in model_dict.keys():
-        #    if 'out' not in key:
-        #        store_dict[key] = model_dict[key]
-        #for param in self.model.parameters():
-        #    print(param.requires_grad)
         self.model.load_state_dict(store_dict)
         self.custom_loss = self.LOSSES["Dice CE Loss"]
         self.training_step_outputs = []
         self.validation_step_outputs = []
         self.test_step_outputs = []
 
-        ##### metrics tracking #####
         self.val_mean_dice = []
         self.val_dice_cortical = []
         self.val_dice_trabecular = []
@@ -81,7 +61,9 @@ class BONESWINUNETR(pl.LightningModule):
 
     def forward(self, x):
         return self.model(x) 
+    
     def training_step(self, batch, batch_index):
+
         inputs, labels = (batch['image'], batch['label'])
         outputs = self.forward(inputs)
         loss = self.custom_loss(outputs, labels)
@@ -90,6 +72,7 @@ class BONESWINUNETR(pl.LightningModule):
         return loss
     
     def validation_step(self, batch, batch_index):
+
         inputs, labels = (batch['image'], batch['label'])
         roi_size =  (320,320,32)
         sw_batch_size = 2
@@ -106,7 +89,9 @@ class BONESWINUNETR(pl.LightningModule):
         self.val_dice_trabecular.append(metric_trab)
         
         return loss
+    
     def on_validation_epoch_end(self):
+
         epoch_average = torch.stack(self.validation_step_outputs).mean()
         mean_val_dice = torch.stack(self.val_mean_dice).mean()
         metric_cor = torch.stack(self.val_dice_cortical).mean()
@@ -141,6 +126,7 @@ class BONESWINUNETR(pl.LightningModule):
         return {'val_MeanDiceScore': mean_val_dice}
     
     def test_step(self, batch, batch_index):
+
         inputs, labels = (batch['image'], batch['label'])
         roi_size = (320,320,32)
         sw_batch_size = 1
@@ -165,6 +151,7 @@ class BONESWINUNETR(pl.LightningModule):
         return loss
 
     def on_test_epoch_end(self):
+
         epoch_average = torch.stack(self.test_step_outputs).mean()
         mean_test_dice = torch.stack(self.test_mean_dice).mean()
         metric_cor = torch.stack(self.test_dice_cortical).mean()

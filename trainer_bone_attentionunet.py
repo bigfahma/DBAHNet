@@ -1,24 +1,12 @@
-# Torch Library
-import torch
-import torch.nn.functional as F
-import torch.nn as nn 
-# MONAI
+import torch 
 from monai.networks.nets import AttentionUnet
-from monai.metrics import DiceMetric#, compute_meandice
 from monai.metrics.hausdorff_distance import compute_hausdorff_distance
-from monai.losses import DiceLoss,DiceFocalLoss,FocalLoss, DiceCELoss
+from monai.losses import DiceFocalLoss, DiceCELoss
 from monai.inferers import sliding_window_inference
 from monai.transforms import AsDiscrete, Activations, Compose, EnsureType
 from loss.diceloss import DiceScore
-
-# Pytorch Lightning
 import pytorch_lightning as pl
-
-# Custom Libraries
 from bone_data.bone_data import get_train_dataloader, get_val_dataloader, get_test_dataloader
-
-import matplotlib.pyplot as plt
-
 import csv
 import os
 
@@ -31,7 +19,6 @@ class BONEATTENTIONUNET(pl.LightningModule):
         self.NUM_CHANNELS = 1 
         self.NUM_CLASSES = 3
         self.LOSSES = {
-            "Dice Loss": DiceLoss(to_onehot_y=False, sigmoid=False, squared_pred=True),
             "Dice Focal Loss": DiceFocalLoss(to_onehot_y=False, sigmoid=False, squared_pred=True),
             "Dice CE Loss": DiceCELoss(to_onehot_y=False, sigmoid=False, squared_pred=True)
         }
@@ -47,7 +34,6 @@ class BONEATTENTIONUNET(pl.LightningModule):
         self.validation_step_outputs = []
         self.test_step_outputs = []
 
-        ##### metrics tracking #####
         self.val_mean_dice = []
         self.val_dice_cortical = []
         self.val_dice_trabecular = []
@@ -69,6 +55,7 @@ class BONEATTENTIONUNET(pl.LightningModule):
         return self.model(x) 
     
     def training_step(self, batch, batch_index):
+
         inputs, labels = (batch['image'], batch['label'])
         outputs = self.forward(inputs)
         loss = self.custom_loss(outputs, labels)
@@ -77,11 +64,13 @@ class BONEATTENTIONUNET(pl.LightningModule):
         return loss
     
     def on_train_epoch_end(self):
+
         epoch_average = torch.stack(self.training_step_outputs).mean()
         self.log("training_epoch_average", epoch_average)
-        self.training_step_outputs.clear()  # free memory
+        self.training_step_outputs.clear() 
 
     def validation_step(self, batch, batch_index):
+
         inputs, labels = (batch['image'], batch['label'])
         roi_size = (320,320,32)
         sw_batch_size = 2
@@ -91,7 +80,7 @@ class BONEATTENTIONUNET(pl.LightningModule):
         self.validation_step_outputs.append(loss)
         val_outputs = self.post_trans_images(outputs)
         metric_trab = DiceScore(y_pred=val_outputs[:, 0:1], y=labels[:, 0:1], include_background= False)
-        metric_cor = DiceScore(y_pred=val_outputs[:, 1:2], y=labels[:, 1:2], include_background = False) # Change maybe include background
+        metric_cor = DiceScore(y_pred=val_outputs[:, 1:2], y=labels[:, 1:2], include_background = False)
         mean_val_dice =  (metric_trab + metric_cor)/2
         self.val_mean_dice.append(mean_val_dice)
         self.val_dice_cortical.append(metric_cor)
@@ -109,10 +98,10 @@ class BONEATTENTIONUNET(pl.LightningModule):
         self.log('val/DiceCortical', metric_cor, sync_dist= True)
         self.log('val/DiceTrabecular', metric_trab, sync_dist= True)
         os.makedirs(self.logger.log_dir,  exist_ok=True)
-        self.validation_step_outputs.clear()  # free memory
-        self.val_mean_dice.clear()  # free memory
-        self.val_dice_cortical.clear()  # free memory
-        self.val_dice_trabecular.clear()  # free memory
+        self.validation_step_outputs.clear() 
+        self.val_mean_dice.clear()  
+        self.val_dice_cortical.clear()  
+        self.val_dice_trabecular.clear() 
 
         if self.current_epoch == 0:
             with open('{}/metric_log.csv'.format(self.logger.log_dir), 'w') as f:
@@ -158,6 +147,7 @@ class BONEATTENTIONUNET(pl.LightningModule):
         return loss
 
     def on_test_epoch_end(self):
+        
         epoch_average = torch.stack(self.test_step_outputs).mean()
         mean_test_dice = torch.stack(self.test_mean_dice).mean()
         metric_cor = torch.stack(self.test_dice_cortical).mean()
