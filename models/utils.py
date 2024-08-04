@@ -28,6 +28,7 @@ class SwinTransformerBlock(nn.Module):
         self.mlp_ratio = mlp_ratio
    
         if min(self.in_dim) <= self.window_size:
+            # if window size is larger than input resolution, we don't partition windows
             self.shift_size = 0
             self.window_size = min(self.in_dim)
 
@@ -66,6 +67,7 @@ class SwinTransformerBlock(nn.Module):
         x = F.pad(x, (0, 0, 0, pad_r, 0, pad_b, 0, pad_g))  
         _, Sp, Hp, Wp, _ = x.shape
 
+        # cyclic shift
         if self.shift_size > 0:
             shifted_x = torch.roll(x, shifts=(-self.shift_size, -self.shift_size,-self.shift_size), dims=(1, 2,3))
             attn_mask = mask_matrix
@@ -73,14 +75,19 @@ class SwinTransformerBlock(nn.Module):
             shifted_x = x
             attn_mask = None
        
+        # partition windows
         x_windows = window_partition(shifted_x, self.window_size)  # nW*B, window_size, window_size, C
         x_windows = x_windows.view(-1, self.window_size * self.window_size * self.window_size,
                                    C)  
+
+        # W-MSA/SW-MSA
         attn_windows = self.attn(x_windows, mask=attn_mask,pos_embed=None)  
 
+        # merge windows
         attn_windows = attn_windows.view(-1, self.window_size, self.window_size, self.window_size, C)
         shifted_x = window_reverse(attn_windows, self.window_size, Sp, Hp, Wp) 
 
+        # reverse cyclic shift
         if self.shift_size > 0:
             x = torch.roll(shifted_x, shifts=(self.shift_size, self.shift_size, self.shift_size), dims=(1, 2, 3))
         else:
@@ -91,6 +98,7 @@ class SwinTransformerBlock(nn.Module):
 
         x = x.view(B, S * H * W, C)
 
+        # FFN
         x = shortcut + self.drop_path(x)
         x = x + self.drop_path(self.mlp(self.norm2(x)))
 
@@ -120,7 +128,6 @@ class PatchMerging(nn.Module):
         x=x.permute(0,2,3,4,1).contiguous().view(B,-1,2*C)
       
         return x
-    
 class WindowAttention(nn.Module):
 
     def __init__(self, dim, window_size, num_heads, qkv_bias=True, qk_scale=None, attn_drop=0., proj_drop=0.):

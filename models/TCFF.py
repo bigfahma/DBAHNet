@@ -22,11 +22,10 @@ class Downsample(nn.Module):
         self.norm = norm_layer(2*dim)
 
     def forward(self, x):
+        
         x=self.gelu(self.conv(x)) 
         x = self.norm(x) 
         return x
-    
-
 class Upsample(nn.Module):
     def __init__(self, dim, norm_layer=nn.BatchNorm3d):
         super().__init__()
@@ -39,8 +38,6 @@ class Upsample(nn.Module):
         x = self.transconv(x)
         x = self.norm(x)
         return x
-    
-
 class TCFF(nn.Module):
     def __init__(self, input_channels,in_dim , downsample = None, upsample = None):
         super(TCFF, self).__init__()
@@ -51,6 +48,8 @@ class TCFF(nn.Module):
         self.relu = nn.GELU()     
         self.conv1 = nn.Conv3d(input_channels * 2, input_channels, kernel_size=1)
         self.norm_layer1 = nn.BatchNorm3d(input_channels)
+        #self.tr_block = BasicLayerTr(dim=input_channels, in_dim=in_dim, depth=1, 
+        #                        num_heads=8, window_size= 7)   
         self.downsample = downsample
         self.upsample = upsample
         if self.downsample is not None:
@@ -67,9 +66,30 @@ class TCFF(nn.Module):
         x = torch.cat((x_tr, x_cnn), dim=1)
         x = self.relu(self.conv1(x))
         x = self.norm_layer1(x)
+        #print(" CONV 1  ", x.shape)
+        #x = x.flatten(2).transpose(1, 2).contiguous()
+        #x = self.tr_block(x, D, H, W)
+        #x = x.view(-1, D, H, W, self.dim).permute(0, 4, 1, 2, 3).contiguous()
         if self.downsample:
             x = self.downsample(x)
             return x
         elif self.Upsample:
             x = self.Upsample(x)
             return x
+if __name__ == "__main__":
+    # Usage example
+    B, C, D, H, W= 1, 8, 16, 32, 32
+    x_tr = torch.randn((B, C, D, H, W))
+    x_cnn = torch.randn((B, C, D, H, W))
+    print("Testing TCFF - Downsampling ")
+    print("Input Tr SHAPE :", x_tr.shape)
+    in_dim = (D, H, W)
+    tcff = TCFF(input_channels=C, in_dim = in_dim, downsample=Downsample)
+    output = tcff(x_tr, x_cnn)
+    print("B, C, D, H, W :",output.shape) 
+
+    print("Testing TCFF - Upsampling")
+    print("Input Tr SHAPE :", x_tr.shape)
+    tcff = TCFF(input_channels=C, in_dim = in_dim, upsample=Upsample)
+    output = tcff(x_tr, x_cnn)
+    print("B, C, D, H, W :",output.shape) 

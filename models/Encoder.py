@@ -7,7 +7,21 @@ from models.CACBlock import CACBlock
 from models.TCFF import TCFF, Downsample
 from models.utils import BasicLayerTr
 
-class Enc_layer(nn.Module):
+
+class RegularConvBlock(nn.Module):
+    def __init__(self, dim):
+        super(RegularConvBlock, self).__init__()
+        self.conv = nn.Conv3d(in_channels=dim, out_channels=dim, kernel_size=3, padding=1)
+        self.bn = nn.BatchNorm3d(dim)
+        self.relu = nn.ReLU(inplace=True)
+
+    def forward(self, x):
+        x = self.conv(x)
+        x = self.bn(x)
+        x = self.relu(x)
+        return x
+
+class MRHA_enc_layer(nn.Module):
    
     def __init__(self,
                  dim,
@@ -29,12 +43,13 @@ class Enc_layer(nn.Module):
                                 num_heads=num_heads, window_size= window_size)
         self.cac_block = CACBlock(dim)
         self.tcff = TCFF(dim, in_dim=in_dim,  downsample=downsample)
-
+        #self.conv_block = RegularConvBlock(dim)
     def forward(self, x, D, H, W):
         B,L,C = x.shape
         assert L == H * W * D, "input feature has wrong size"
         x_cnn = x.view(-1, D, H, W, C).permute(0, 4, 1, 2, 3).contiguous()
         out_cnn = self.cac_block(x_cnn)
+        #out_cnn = self.conv_block(x_cnn)
         out_tr = self.basic_layer_tr(x, D, H, W)
         out_tr = out_tr.view(-1, D, H, W, C).permute(0, 4, 1, 2, 3).contiguous()
         out = self.tcff(out_tr, out_cnn)
@@ -47,13 +62,35 @@ class Encoder(nn.Module):
     def __init__(self, dim, in_dim, depth, num_heads, window_size, downsample = Downsample):
         super(Encoder, self).__init__()
         D, H, W = in_dim
-        self.mrha_enc1 = Enc_layer(dim=dim, in_dim= (D, H, W), depth=depth, num_heads=num_heads[0], window_size=window_size, downsample=downsample)
-        self.mrha_enc2 = Enc_layer(dim=2*dim, in_dim= (D//2, H//2, W//2), depth=depth, num_heads=num_heads[1], window_size=window_size, downsample=downsample)
-        self.mrha_enc3 = Enc_layer(dim=4*dim, in_dim =(D//4, H//4, W//4), depth=depth, num_heads=num_heads[2], window_size=window_size, downsample=downsample)
+        # Assuming input resolution is (D, H, W) and will be provided during the forward pass
+        self.mrha_enc1 = MRHA_enc_layer(dim=dim, in_dim= (D, H, W), depth=depth, num_heads=num_heads[0], window_size=window_size, downsample=downsample)
+        self.mrha_enc2 = MRHA_enc_layer(dim=2*dim, in_dim= (D//2, H//2, W//2), depth=depth, num_heads=num_heads[1], window_size=window_size, downsample=downsample)
+        self.mrha_enc3 = MRHA_enc_layer(dim=4*dim, in_dim =(D//4, H//4, W//4), depth=depth, num_heads=num_heads[2], window_size=window_size, downsample=downsample)
         
     def forward(self, x, D, H, W):
         x1, D1, H1, W1 = self.mrha_enc1(x, D, H, W)
+        #print("l1 output shape :", x1.shape)
         x2, D2, H2, W2 = self.mrha_enc2(x1, D1, H1, W1)
+        #print("l2 output shape :", x2.shape)
         xout, _, _, _ = self.mrha_enc3(x2, D2, H2, W2)
+        #print("l3 output Encoder :", xout.shape)
         skips = [x, x1, x2]
         return xout, skips
+if __name__ == "__main__":
+
+
+    dim = 96
+    in_dim = (16, 32, 32)
+    depth = 2
+    num_heads = [6,12,24]
+    window_size = 7
+    batch_size = 1
+    D, H, W = in_dim
+    x = torch.rand((batch_size, H * W * D, dim))
+    print("Input shape :",x.shape)
+    x_view = x.view(-1, D, H, W, dim).permute(0, 4, 1, 2, 3).contiguous()
+    print("MRHA Encoder")
+    MRHA_Encoder = MRHAEncoder(dim = dim, in_dim= in_dim, depth = depth, num_heads = num_heads, window_size = window_size)
+    xout, skips = MRHA_Encoder(x, D, H, W)
+    skip1, skip2, skip3 = skips
+    print("Skips :", skip1.shape, skip2.shape, skip3.shape)
