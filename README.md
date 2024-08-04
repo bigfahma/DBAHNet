@@ -1,5 +1,6 @@
 # DBAHNet
-DBAHNET: DUAL-BRANCH ATTENTION-BASED HYBRID NETWORK FOR HIGH-RESOLUTION 3D MICRO-CT BONE SCAN SEGMENTATION (ISBI 2024 Submission - Pending)
+DBAHNET: DUAL-BRANCH ATTENTION-BASED HYBRID NETWORK
+
 
 # Python libraries versions
 You can install the python libraries using the pip install command.
